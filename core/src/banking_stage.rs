@@ -561,6 +561,7 @@ impl BankingStage {
                         end_of_slot.next_slot_leader,
                         banking_stage_stats,
                     );
+<<<<<<< HEAD
 
                     let end_of_slot_filtered_invalid_count = original_unprocessed_indexes
                         .len()
@@ -629,6 +630,7 @@ impl BankingStage {
                         ..
                     } = process_transactions_summary;
 
+<<<<<<< HEAD
                     if reached_max_poh_height
                         || !Bank::should_bank_still_be_processing_txs(
                             &bank_creation_time,
@@ -707,7 +709,6 @@ impl BankingStage {
                 }
             }
         });
-
         proc_start.stop();
 
         debug!(
@@ -2015,7 +2016,7 @@ impl BankingStage {
         banking_stage_stats: &mut BankingStageStats,
         slot_metrics_tracker: &mut LeaderSlotMetricsTracker,
     ) {
-        if Self::packet_has_more_unprocessed_transactions(&packet_indexes) {
+        if !packet_indexes.is_empty() {
             if unprocessed_packet_batches.len() >= batch_limit {
                 *dropped_packet_batches_count += 1;
                 if let Some(dropped_batch) = unprocessed_packet_batches.pop_front() {
@@ -2039,10 +2040,6 @@ impl BankingStage {
                 false,
             ));
         }
-    }
-
-    fn packet_has_more_unprocessed_transactions(packet_indexes: &[usize]) -> bool {
-        !packet_indexes.is_empty()
     }
 
     pub fn join(self) -> thread::Result<()> {
