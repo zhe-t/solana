@@ -561,7 +561,6 @@ impl BankingStage {
                         end_of_slot.next_slot_leader,
                         banking_stage_stats,
                     );
-<<<<<<< HEAD
 
                     let end_of_slot_filtered_invalid_count = original_unprocessed_indexes
                         .len()
@@ -630,7 +629,6 @@ impl BankingStage {
                         ..
                     } = process_transactions_summary;
 
-<<<<<<< HEAD
                     if reached_max_poh_height
                         || !Bank::should_bank_still_be_processing_txs(
                             &bank_creation_time,
@@ -702,9 +700,7 @@ impl BankingStage {
 
                     // `original_unprocessed_indexes` must have remaining packets to process
                     // if not yet processed.
-                    assert!(Self::packet_has_more_unprocessed_transactions(
-                        &original_unprocessed_indexes
-                    ));
+                    assert!(!original_unprocessed_indexes.is_empty());
                     true
                 }
             }
