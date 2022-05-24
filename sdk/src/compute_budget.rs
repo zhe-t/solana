@@ -55,4 +55,14 @@ impl ComputeBudgetInstruction {
     pub fn set_compute_unit_price(micro_lamports: u64) -> Instruction {
         Instruction::new_with_borsh(id(), &Self::SetComputeUnitPrice(micro_lamports), vec![])
     }
+
+
+
+    pub fn request_units(micro_lamports: u64) -> Instruction {
+        // using default uints for testing
+        let units = 200_000u32;
+        // adiitional_fee is in lamport?
+        let additional_fee = micro_lamports.saturating_mul(units as u64).saturating_div(1_000_000u64) as u32;
+        Instruction::new_with_borsh(id(), &Self::RequestUnitsDeprecated{units, additional_fee}, vec![])
+    }
 }

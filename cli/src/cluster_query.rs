@@ -242,10 +242,10 @@ impl ClusterQuerySubCommands for App<'_, '_> {
                     Arg::with_name("interval")
                         .short("i")
                         .long("interval")
-                        .value_name("SECONDS")
+                        .value_name("MILLI-SECONDS")
                         .takes_value(true)
                         .default_value("2")
-                        .help("Wait interval seconds between submitting the next transaction"),
+                        .help("Wait interval milli-seconds between submitting the next transaction"),
                 )
                 .arg(
                     Arg::with_name("count")
@@ -514,7 +514,7 @@ pub fn parse_cluster_ping(
     default_signer: &DefaultSigner,
     wallet_manager: &mut Option<Arc<RemoteWalletManager>>,
 ) -> Result<CliCommandInfo, CliError> {
-    let interval = Duration::from_secs(value_t_or_exit!(matches, "interval", u64));
+    let interval = Duration::from_millis(value_t_or_exit!(matches, "interval", u64));
     let count = if matches.is_present("count") {
         Some(value_t_or_exit!(matches, "count", u64))
     } else {
@@ -1410,7 +1410,7 @@ pub fn process_ping(
                 lamports,
             )];
             if let Some(compute_unit_price) = compute_unit_price {
-                ixs.push(ComputeBudgetInstruction::set_compute_unit_price(
+                ixs.push(ComputeBudgetInstruction::request_units(
                     *compute_unit_price,
                 ));
             }
