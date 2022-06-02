@@ -102,7 +102,10 @@ pub enum CliCommand {
     ShowGossip,
     ShowStakes {
         use_lamports_unit: bool,
-        vote_account_pubkeys: Option<Vec<Pubkey>>,
+        // vote_account_pubkeys: Option<Vec<Pubkey>>,
+        // withdraw_authority_pubkeys: Option<Vec<Pubkey>>,
+        withdraw_authority: Option<Vec<Pubkey>>,
+
     },
     ShowValidators {
         use_lamports_unit: bool,
@@ -898,12 +901,16 @@ pub fn process_command(config: &CliConfig) -> ProcessResult {
         CliCommand::ShowGossip => process_show_gossip(&rpc_client, config),
         CliCommand::ShowStakes {
             use_lamports_unit,
-            vote_account_pubkeys,
+            // vote_account_pubkeys,
+            // withdraw_authority_pubkeys,
+            withdraw_authority,
         } => process_show_stakes(
             &rpc_client,
             config,
             *use_lamports_unit,
-            vote_account_pubkeys.as_deref(),
+            // vote_account_pubkeys.as_deref(),
+            // withdraw_authority_pubkeys.as_deref(),
+            withdraw_authority.as_deref(),
         ),
         CliCommand::WaitForMaxStake { max_stake_percent } => {
             process_wait_for_max_stake(&rpc_client, config, *max_stake_percent)

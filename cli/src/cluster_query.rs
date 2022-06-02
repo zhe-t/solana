@@ -622,13 +622,18 @@ pub fn parse_show_stakes(
     wallet_manager: &mut Option<Arc<RemoteWalletManager>>,
 ) -> Result<CliCommandInfo, CliError> {
     let use_lamports_unit = matches.is_present("lamports");
-    let vote_account_pubkeys =
-        pubkeys_of_multiple_signers(matches, "vote_account_pubkeys", wallet_manager)?;
+    // let withdraw_authority_pubkeys =
+    //     pubkeys_of_multiple_signers(matches, "withdraw_authority_pubkeys", wallet_manager)?;
+    let withdraw_authority =
+        pubkeys_of_multiple_signers(matches, "withdraw_authority", wallet_manager)?;
+    // let vote_account_pubkeys =
+    //     pubkeys_of_multiple_signers(matches, "vote_account_pubkeys", wallet_manager)?;
 
     Ok(CliCommandInfo {
         command: CliCommand::ShowStakes {
             use_lamports_unit,
-            vote_account_pubkeys,
+            withdraw_authority,
+            // vote_account_pubkeys,
         },
         signers: vec![],
     })
@@ -1748,12 +1753,14 @@ pub fn process_show_stakes(
     rpc_client: &RpcClient,
     config: &CliConfig,
     use_lamports_unit: bool,
-    vote_account_pubkeys: Option<&[Pubkey]>,
+    // vote_account_pubkeys: Option<&[Pubkey]>,
+    // withdraw_authority_pubkeys: Option<&[Pubkey]>,
+    withdraw_authority: Option<&[Pubkey]>,
 ) -> ProcessResult {
     use crate::stake::build_stake_state;
 
     let progress_bar = new_spinner_progress_bar();
-    progress_bar.set_message("Fetching stake accounts...");
+    progress_bar.set_message("Fetching stake accounts according to withdraw authority...");
 
     let mut program_accounts_config = RpcProgramAccountsConfig {
         account_config: RpcAccountInfoConfig {
@@ -1763,23 +1770,47 @@ pub fn process_show_stakes(
         ..RpcProgramAccountsConfig::default()
     };
 
-    if let Some(vote_account_pubkeys) = vote_account_pubkeys {
+    // if let Some(vote_account_pubkeys) = vote_account_pubkeys {
+    //     // Use server-side filtering if only one vote account is provided
+    //     if vote_account_pubkeys.len() == 1 {
+    //         program_accounts_config.filters = Some(vec![
+    //             // Filter by `StakeState::Stake(_, _)`
+    //             rpc_filter::RpcFilterType::Memcmp(rpc_filter::Memcmp {
+    //                 offset: 0,
+    //                 bytes: rpc_filter::MemcmpEncodedBytes::Base58(
+    //                     bs58::encode([2, 0, 0, 0]).into_string(),
+    //                 ),
+    //                 encoding: Some(rpc_filter::MemcmpEncoding::Binary),
+    //             }),
+    //             // Filter by `Delegation::voter_pubkey`, which begins at byte offset 124
+    //             rpc_filter::RpcFilterType::Memcmp(rpc_filter::Memcmp {
+    //                 offset: 124,
+    //                 bytes: rpc_filter::MemcmpEncodedBytes::Base58(
+    //                     vote_account_pubkeys[0].to_string(),
+    //                 ),
+    //                 encoding: Some(rpc_filter::MemcmpEncoding::Binary),
+    //             }),
+    //         ]);
+    //     }
+    // }
+    if let Some(withdraw_authority) = withdraw_authority {
         // Use server-side filtering if only one vote account is provided
-        if vote_account_pubkeys.len() == 1 {
+        if withdraw_authority.len() == 1 {
             program_accounts_config.filters = Some(vec![
                 // Filter by `StakeState::Stake(_, _)`
+                // rpc_filter::RpcFilterType::Memcmp(rpc_filter::Memcmp {
+                //     offset: 0,
+                //     bytes: rpc_filter::MemcmpEncodedBytes::Base58(
+                //         // bs58::encode([2, 0, 0, 0]).into_string(),
+                //         bs58::encode([1, 0, 0, 0]).into_string(),
+                //     ),
+                //     encoding: Some(rpc_filter::MemcmpEncoding::Binary),
+                // }),
+                // Filter by `Meta::authorized::withdrawer`, which begins at byte offset 44
                 rpc_filter::RpcFilterType::Memcmp(rpc_filter::Memcmp {
-                    offset: 0,
+                    offset: 44,
                     bytes: rpc_filter::MemcmpEncodedBytes::Base58(
-                        bs58::encode([2, 0, 0, 0]).into_string(),
-                    ),
-                    encoding: Some(rpc_filter::MemcmpEncoding::Binary),
-                }),
-                // Filter by `Delegation::voter_pubkey`, which begins at byte offset 124
-                rpc_filter::RpcFilterType::Memcmp(rpc_filter::Memcmp {
-                    offset: 124,
-                    bytes: rpc_filter::MemcmpEncodedBytes::Base58(
-                        vote_account_pubkeys[0].to_string(),
+                        withdraw_authority[0].to_string(),
                     ),
                     encoding: Some(rpc_filter::MemcmpEncoding::Binary),
                 }),
@@ -1804,7 +1835,8 @@ pub fn process_show_stakes(
         if let Ok(stake_state) = stake_account.state() {
             match stake_state {
                 StakeState::Initialized(_) => {
-                    if vote_account_pubkeys.is_none() {
+                    // if vote_account_pubkeys.is_none() {
+                    if withdraw_authority.is_none() {
                         stake_accounts.push(CliKeyedStakeState {
                             stake_pubkey: stake_pubkey.to_string(),
                             stake_state: build_stake_state(
@@ -1817,11 +1849,29 @@ pub fn process_show_stakes(
                         });
                     }
                 }
-                StakeState::Stake(_, stake) => {
-                    if vote_account_pubkeys.is_none()
-                        || vote_account_pubkeys
+                // StakeState::Stake(_, stake) => {
+                //     if vote_account_pubkeys.is_none()
+                //         || vote_account_pubkeys
+                //             .unwrap()
+                //             .contains(&stake.delegation.voter_pubkey)
+                //     {
+                //         stake_accounts.push(CliKeyedStakeState {
+                //             stake_pubkey: stake_pubkey.to_string(),
+                //             stake_state: build_stake_state(
+                //                 stake_account.lamports,
+                //                 &stake_state,
+                //                 use_lamports_unit,
+                //                 &stake_history,
+                //                 &clock,
+                //             ),
+                //         });
+                //     }
+                // }
+                StakeState::Stake(meta, _stake) => {
+                    if withdraw_authority.is_none()
+                        || withdraw_authority
                             .unwrap()
-                            .contains(&stake.delegation.voter_pubkey)
+                            .contains(&meta.authorized.withdrawer)
                     {
                         stake_accounts.push(CliKeyedStakeState {
                             stake_pubkey: stake_pubkey.to_string(),
