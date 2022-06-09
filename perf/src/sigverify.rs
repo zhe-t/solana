@@ -318,11 +318,18 @@ pub fn check_for_tracer_packet(packet: &mut Packet) -> bool {
         .checked_add(size_of::<Pubkey>())
         .filter(|v| v <= &packet.meta.size);
     // Check for tracer pubkey
+<<<<<<< HEAD
     if let Some(first_pubkey_end) = maybe_first_pubkey_end {
         let is_tracer_packet =
             &packet.data[first_pubkey_start..first_pubkey_end] == TRACER_KEY.as_ref();
         if is_tracer_packet {
             packet.meta.flags |= PacketFlags::TRACER_PACKET;
+=======
+    match packet.data(first_pubkey_start..first_pubkey_end) {
+        Some(pubkey) if pubkey == TRACER_KEY.as_ref() => {
+            packet.meta.set_tracer(true);
+            true
+>>>>>>> bf8faa8a3 (Report banking stage tracer metrics (#25620))
         }
         is_tracer_packet
     } else {
